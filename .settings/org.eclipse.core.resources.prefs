@@ -1,0 +1,7 @@
+eclipse.preferences.version=1
+encoding//elcinema/pipelines.py=utf-8
+encoding//elcinema/settings.py=utf-8
+encoding//elcinema/spiders/elcinema_spider.py=utf-8
+encoding//elcinema/spiders/elramadan_spider.py=utf-8
+encoding//elcinema/spiders/filfan_spider.py=utf-8
+encoding/run_app.py=utf-8

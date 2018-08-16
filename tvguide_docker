@@ -1,0 +1,54 @@
+FROM ubuntu:trusty
+
+# Install packages.
+RUN apt-get -y update && apt-get -y upgrade
+RUN apt-get -y install python-dev python-pip libxml2-dev libxslt1-dev zlib1g-dev libffi-dev libssl-dev nginx uwsgi uwsgi-plugin-python wget nano curl git locales
+RUN sudo pip install -U pip
+RUN sudo pip install setuptools --upgrade
+RUN sudo pip install flask pandas pymongo scrapy scrapy-random-useragent enum
+
+# Install MongoDB.
+RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
+RUN echo "deb [ arch=amd64 ] http://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.4 multiverse" | tee /etc/apt/sources.list.d/mongodb-org-3.4.list
+RUN apt-get update
+RUN apt-get install -y mongodb
+RUN apt-get install -y --allow-unauthenticated mongodb-org
+
+# MongoExpress
+RUN curl -sL https://deb.nodesource.com/setup_8.x | sudo -E bash -
+RUN apt-get install -y nodejs
+RUN npm install -g mongo-express
+
+# Set configuration for MongoDB.
+RUN cd /usr/lib/node_modules/mongo-express && cp config.default.js config.js
+RUN sed -i -e "s@CONF=/etc/mongodb.conf@CONF=/etc/mongod.conf@" /etc/init.d/mongodb
+RUN sed -i -e "s@bindIp: 127.0.0.1@bindIp: 0.0.0.0@" /etc/mongod.conf
+RUN sed -i -e "s@|| 'localhost'@|| '0.0.0.0'@" /usr/lib/node_modules/mongo-express/config.js
+# RUN sed -i -e "s@readOnly: false@readOnly: true@" /usr/lib/node_modules/mongo-express/config.js
+RUN sed -i -e "s@'admin'@'root'@" /usr/lib/node_modules/mongo-express/config.js
+RUN sed -i -e "s@'pass'@'Q7h3T6CM'@" /usr/lib/node_modules/mongo-express/config.js
+RUN sed -i -e "s@process.env.ME_CONFIG_MONGODB_AUTH_DATABASE || mongo.db@'tv_guide'@" /usr/lib/node_modules/mongo-express/config.js
+RUN sed -i -e "s@process.env.ME_CONFIG_MONGODB_AUTH_USERNAME || mongo.username@''@" /usr/lib/node_modules/mongo-express/config.js
+RUN sed -i -e "s@process.env.ME_CONFIG_MONGODB_AUTH_PASSWORD || mongo.password@''@" /usr/lib/node_modules/mongo-express/config.js
+
+# Copy project files.
+COPY elcinema.tar /home
+RUN cd /home && tar -xvf elcinema.tar
+WORKDIR /home/elcinema
+
+# Set configuration for UWSGI.
+RUN cp tvguide /etc/nginx/sites-available/
+RUN ln -s /etc/nginx/sites-available/tvguide /etc/nginx/sites-enabled/tvguide
+RUN cp tvguide.ini /etc/uwsgi/apps-available/
+RUN ln -s /etc/uwsgi/apps-available/tvguide.ini /etc/uwsgi/apps-enabled/tvguide.ini
+
+# Set locales.
+RUN locale-gen en_US.UTF-8
+RUN locale-gen ar_EG.UTF-8
+RUN dpkg-reconfigure locales
+
+# Define default command.
+CMD ["/bin/bash"]
+
+# Expose ports.
+EXPOSE 8090 8081 27017
